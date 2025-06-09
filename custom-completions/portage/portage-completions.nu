@@ -1,3 +1,7 @@
+def wrapped_helper []: table<name: string, is_enabled: bool> -> list<string> {
+  $in | each { |v| if $v.is_enabled { $v.name } }
+}
+
 def "nu-complete ebuild list" [] {
   glob *.ebuild
 }
@@ -51,3 +55,24 @@ export extern "ebuild" [
   file?: string@"nu-complete ebuild list"
   ...commands: string@"nu-complete ebuild commands"
 ]
+
+export def "emerge-webrsync" [
+  --revert: datetime # Revert to snapshot
+  --no-pgp-verify    # Disable PGP verification of snapshot
+  --keep (-k)        # Keep snapshots in DISTDIR (don't delete)
+  --quiet (-q)       # Only output errors
+  --verbose (-v)     # Enable verbose output (no-op)
+  --debug (-x)       # Enable debug output
+] {
+  [
+    [name, is_enabled];
+    [$"--revert=($revert | format date "%Y%m%d")", ($revert != null)],
+    ["--no-pgp-verify", $no_pgp_verify],
+    ["--keep", $keep],
+    ["--quiet", $quiet],
+    ["--verbose", $verbose],
+    ["--debug", $debug],
+  ]
+    | wrapped_helper
+    | ^"emerge-webrsync" ...$in
+}
